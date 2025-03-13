@@ -1,0 +1,1 @@
+Scrapes the [Cosina Voigtländer](https://www.cosina.co.jp/voigtlander/) website and outputs a table in Wiki markup to populate the [Wikipedia Article](https://en.wikipedia.org/wiki/Cosina_Voigtl%C3%A4nder).
