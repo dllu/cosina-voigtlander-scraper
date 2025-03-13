@@ -81,7 +81,7 @@ def format_f_number(value):
     return f"{{{{f/|{match.group(1)}}}}}" if match else value
 
 
-def format_focal(value):
+def format_focal(value, mult=1):
     value = value.replace("mm", "")
     value = value.replace("約", "")
     dx = "フルサイズ換算:"
@@ -92,7 +92,7 @@ def format_focal(value):
         value = value.replace(dx, "full frame equivalent: ")
         preamble = f'data-sort-value="{ff_value}"'
     else:
-        ff_value = value
+        ff_value = float(value) * mult
     ff_value = float(ff_value)
 
     if ff_value < 21:
@@ -115,13 +115,17 @@ def parse_lens_page(lens_url):
     spec_data = soup.select(
         ".lens-specification__detail__data .lens-specification__detail__data-unit"
     )
+    focal_mult = 1
+    if "micro-four-thirds" in lens_url:
+        focal_mult = 2
+
     for item in spec_data:
         header = item.select_one(
             ".lens-specification__detail__data-unitDt"
         ).text.strip()
         value = item.select_one(".lens-specification__detail__data-unitDd").text.strip()
         if header == "焦点距離":
-            specs["focal_length"] = format_focal(value)
+            specs["focal_length"] = format_focal(value, focal_mult)
         elif header == "口径比":
             specs["f_number"] = format_f_number(value)
         elif header == "最短撮影距離":
@@ -156,10 +160,26 @@ def crawl_mount(mount_url, mount_name):
         lenses.append(lens_specs)
 
     lenses.sort(
-        key=lambda x: float(re.findall(r"[\d\.]+", x.get("focal_length", "0"))[0])
+        key=lambda x: (
+            float(re.findall(r"[\d\.]+", x.get("focal_length", "0"))[0]),
+            float(re.findall(r"[\d\.]+", x.get("f_number", "0"))[0]),
+        )
     )
 
-    table = f'{{| class="wikitable sortable" style="font-size:100%;text-align:center;"\n|+ Cosina Voigtländer lenses for [[{mount_name}]]<ref>{{{{Cite web |url={mount_url} |title={mount_name} Lenses |access-date=2024-03-12|website=Cosina Voigtländer}}}}</ref>\n'
+    print(f"== {mount_name} ==")
+
+    table = """{| class="wikitable"
+| style="background:#fdd"|
+| Super wide angle
+| style="background:#fed"|
+| Wide angle
+| style="background:#ffd"|
+| Normal
+| style="background:#dfd"|
+| Telephoto
+|}\n\n"""
+
+    table += f'{{| class="wikitable sortable" style="font-size:100%;text-align:center;"\n|+ Cosina Voigtländer {mount_name}<ref>{{{{Cite web |url={mount_url} |title={mount_name} Lenses |access-date=2024-03-12|website=Cosina Voigtländer}}}}</ref>\n'
     table += '! [[Focal length]] (mm) !! [[F-number]] !! Min. focus !! Name !! Lens const. !! [[Diaphragm (optics)|Aperture blades]] !! Dimensions (Diam.×Length) !! Weight !! [[Photographic filter#Filter sizes and mountings|Filter size]] !! class="unsortable" | Ref.\n'
 
     for lens in lenses:
